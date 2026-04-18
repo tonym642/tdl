@@ -22,10 +22,14 @@ create table tasks (
   project_id   uuid not null references projects(id) on delete cascade,
   task         text not null,
   comments     text,
+  priority     boolean not null default false,
   completed    boolean not null default false,
   created_at   timestamptz not null default now(),
   completed_at timestamptz
 );
+
+-- Migration for existing tasks tables (no-op if column already exists).
+alter table tasks add column if not exists priority boolean not null default false;
 
 create index projects_user_idx      on projects(user_id);
 create index projects_category_idx  on projects(category);

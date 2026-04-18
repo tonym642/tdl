@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#09090b">
-<title>Tasks</title>
+<link rel="icon" type="image/png" href="./assets/favicon.png">
+<title>To Do List</title>
 <style>
   :root{
     --bg:#09090b;            /* zinc-950 */
@@ -26,6 +27,7 @@
     --radius:10px;
     --safe-top: env(safe-area-inset-top);
     --safe-bot: env(safe-area-inset-bottom);
+    color-scheme: dark;
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -82,11 +84,14 @@
     padding:8px 12px; color:var(--text); font-size:13px; outline:none;
   }
   .pri-toggle{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:7px 12px; border-radius:999px; font-size:13px;
+    width:36px; height:36px; border-radius:999px;
+    display:grid; place-items:center; font-size:16px;
     background:var(--card); border:1px solid var(--line); color:var(--muted);
+    transition:background .15s, color .15s, border-color .15s;
   }
+  .pri-toggle:hover{ background:var(--card-2); color:var(--text) }
   .pri-toggle.on{ color:var(--star); border-color:var(--star); background:rgba(245,158,11,.10) }
+  .pri-toggle.on:hover{ color:var(--star) }
 
   .avatar{
     width:36px; height:36px; border-radius:999px; display:grid; place-items:center;
@@ -102,12 +107,35 @@
   .app{ flex:1; min-height:0; display:grid; grid-template-columns:1fr; overflow:hidden; }
   .panel{ min-width:0; display:flex; flex-direction:column; height:100%; overflow:hidden }
 
-  /* Mobile: 3-panel drilldown */
+  /* Mobile: 2-panel (projects/tasks); sidebar is overlay */
   @media (max-width: 899px){
-    .app{ grid-template-columns: 100vw 100vw 100vw; width:300vw; transition: transform .25s ease; }
-    .app.show-projects{ transform: translateX(-100vw); }
-    .app.show-tasks   { transform: translateX(-200vw); }
+    .app{ grid-template-columns: 100vw 100vw; width:200vw; transition: transform .25s ease; }
+    .app.show-tasks{ transform: translateX(-100vw); }
+
+    .sidebar{
+      position:fixed; top:0; bottom:0; left:0; width:240px; z-index:20;
+      padding-top:var(--safe-top); border-right:1px solid var(--line);
+      transform: translateX(-100%); transition: transform .25s ease;
+    }
+    .sidebar.open{ transform: translateX(0) }
+
+    .hamburger{ display:grid }
+    #back-to-cats{ display:none !important }
   }
+
+  .hamburger{
+    width:36px; height:36px; border-radius:999px;
+    display:none; place-items:center;
+    background:var(--card); border:1px solid var(--line); color:var(--muted);
+    transition:background .15s, color .15s;
+  }
+  .hamburger:hover{ background:var(--card-2); color:var(--text) }
+
+  .sidebar-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    opacity:0; pointer-events:none; transition:opacity .25s; z-index:15;
+  }
+  .sidebar-backdrop.on{ opacity:1; pointer-events:auto }
   /* Desktop: sidebar fixed full-height, projects+tasks as cards */
   @media (min-width: 900px){
     .sidebar{
@@ -118,7 +146,7 @@
     }
     .topbar{ padding-left: calc(240px + 14px) }
     .app{
-      grid-template-columns: minmax(0, 60vw) minmax(260px, 1fr);
+      grid-template-columns: minmax(0, 55vw) minmax(260px, 1fr);
       padding: 12px 12px 12px calc(240px + 12px);
       gap: 12px;
     }
@@ -192,6 +220,12 @@
     text-transform:uppercase; letter-spacing:.1em;
     border-bottom:1px solid var(--line); background:var(--panel);
   }
+  .project-group-head{
+    padding:14px 16px 8px; font-size:11px; font-weight:600;
+    text-transform:uppercase; letter-spacing:.12em;
+    color:var(--muted-2); background:var(--panel);
+    border-bottom:1px solid var(--line);
+  }
   .project{
     border-bottom:1px solid var(--line); cursor:pointer;
     transition:background .12s;
@@ -257,16 +291,26 @@
     border-bottom:1px solid transparent;
   }
   .task:hover{ background:var(--card) }
+  .task.priority{ background:rgba(239,68,68,.10) }
+  .task.priority:hover{ background:rgba(239,68,68,.15) }
+  .task.priority .title{ color:var(--danger) }
+  .task.priority .comments{ color:rgba(239,68,68,.75) }
   .task.done .title{ color:var(--muted-2); text-decoration:line-through }
+  .task-star{
+    font-size:18px; line-height:1; padding:0 2px; margin-top:0;
+    color:var(--muted-2); flex:0 0 auto; transition:color .15s;
+  }
+  .task-star:hover{ color:var(--danger) }
+  .task-star.on{ color:var(--danger) }
   .check{
     appearance:none; -webkit-appearance:none; width:18px; height:18px; margin-top:2px;
     border-radius:5px; border:1.5px solid var(--line-2); background:transparent;
     display:grid; place-items:center; cursor:pointer; flex:0 0 auto;
   }
-  .check:checked{ background:var(--ok); border-color:var(--ok) }
+  .check:checked{ background:var(--muted-2); border-color:var(--muted-2) }
   .check:checked::after{ content:"✓"; color:#fff; font-size:12px; line-height:1; font-weight:700 }
   .task .body{ flex:1; min-width:0 }
-  .task .title{ font-size:13.5px; font-weight:400; color:var(--text); word-wrap:break-word }
+  .task .title{ font-size:13.5px; font-weight:200; color:var(--muted); word-wrap:break-word }
   .task .comments{ color:var(--muted); font-size:12.5px; margin-top:4px; white-space:pre-wrap }
 
   /* ======================= MODALS ======================= */
@@ -280,7 +324,7 @@
   .modal h3{ margin:14px 0 8px; font-size:13px; font-weight:600; color:var(--muted) }
   .modal label{ display:block; font-size:12px; color:var(--muted); margin:10px 0 4px }
   .modal input[type=text], .modal input[type=email], .modal input[type=password],
-  .modal select, .modal textarea{
+  .modal input[type=date], .modal select, .modal textarea{
     width:100%; background:var(--bg); border:1px solid var(--line);
     padding:9px 10px; border-radius:8px; color:var(--text); outline:none;
     font-size:13.5px;
@@ -292,6 +336,20 @@
   .modal .row{ display:flex; gap:10px }
   .modal .row > *{ flex:1; min-width:0 }
   .modal .check-row{ display:flex; align-items:center; gap:8px; margin-top:12px; color:var(--text); font-size:13.5px }
+  .radio-group{ display:flex; gap:6px; flex-wrap:wrap; margin-top:4px }
+  .radio-pill{
+    position:relative; flex:1 1 0; min-width:0;
+    padding:9px 10px; border-radius:8px;
+    background:var(--bg); border:1px solid var(--line);
+    color:var(--muted); font-size:13px; font-weight:500;
+    text-align:center; cursor:pointer; user-select:none;
+    transition:background .12s, border-color .12s, color .12s;
+  }
+  .radio-pill:hover{ background:var(--card-2); color:var(--text) }
+  .radio-pill input{ position:absolute; inset:0; opacity:0; margin:0; cursor:pointer }
+  .radio-pill:has(input:checked){
+    background:var(--accent-bg); border-color:var(--accent); color:var(--accent);
+  }
   .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px }
   .btn{ padding:9px 14px; border-radius:8px; background:var(--card-2); color:var(--text); font-size:13.5px; font-weight:500; border:1px solid var(--line) }
   .btn:hover{ background:var(--line-2) }
@@ -330,16 +388,12 @@
 
 <!-- ================== TOP BAR ================== -->
 <header class="topbar">
+  <button class="hamburger" id="hamburger" aria-label="Menu" type="button">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
   <div class="topbar-spacer"></div>
 
-  <select class="filter-select" id="type-filter">
-    <option value="">All types</option>
-    <option value="pre-quals">pre-quals</option>
-    <option value="apps">apps</option>
-    <option value="other">other</option>
-  </select>
-
-  <button id="priority-toggle" class="pri-toggle" type="button" aria-pressed="false">★ Priority</button>
+  <button id="priority-toggle" class="pri-toggle" type="button" aria-pressed="false" aria-label="Filter by priority">★</button>
 
   <div class="seg" id="status-filter">
     <button data-status="pending" class="on">Pending</button>
@@ -392,9 +446,6 @@
   <!-- Projects -->
   <section class="panel projects">
     <header class="pane-header">
-      <button class="back" id="back-to-cats" aria-label="Back">
-        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-      </button>
       <div class="pane-title">
         <h1 id="current-cat">All</h1>
         <p class="sub" id="projects-sub">All projects</p>
@@ -441,6 +492,8 @@
   </section>
 </div>
 
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
 <!-- ================== PROJECT MODAL ================== -->
 <dialog id="project-modal">
   <form class="modal" id="project-form" method="dialog">
@@ -448,22 +501,24 @@
     <input type="hidden" name="id">
     <label>Name</label>
     <input type="text" name="name" required maxlength="120">
-    <div class="row">
-      <div>
-        <label>Category</label>
-        <select name="category" required>
-          <option>MHC</option><option>TSM</option><option>Personal</option>
-        </select>
-      </div>
-      <div>
-        <label>Type</label>
-        <select name="type" required>
-          <option value="pre-quals">pre-quals</option>
-          <option value="apps">apps</option>
-          <option value="other">other</option>
-        </select>
-      </div>
+
+    <label>Category</label>
+    <div class="radio-group" role="radiogroup" aria-label="Category">
+      <label class="radio-pill"><input type="radio" name="category" value="MHC" required><span>MHC</span></label>
+      <label class="radio-pill"><input type="radio" name="category" value="TSM"><span>TSM</span></label>
+      <label class="radio-pill"><input type="radio" name="category" value="Personal"><span>Personal</span></label>
     </div>
+
+    <label>Type</label>
+    <div class="radio-group" role="radiogroup" aria-label="Type">
+      <label class="radio-pill"><input type="radio" name="type" value="pre-quals" required><span>Pre-Quals</span></label>
+      <label class="radio-pill"><input type="radio" name="type" value="apps"><span>Apps</span></label>
+      <label class="radio-pill"><input type="radio" name="type" value="other"><span>Other</span></label>
+    </div>
+
+    <label>Date Created</label>
+    <input type="date" name="created_at" required>
+
     <label class="check-row"><input type="checkbox" name="priority"> Priority</label>
     <div class="actions">
       <button type="button" class="btn danger" id="project-delete" hidden>Delete</button>
@@ -579,7 +634,6 @@
   const searchWrap      = $('#search-wrap');
   const searchBtn       = $('#search-btn');
   const searchInput     = $('#search-input');
-  const typeFilter      = $('#type-filter');
   const priorityToggle  = $('#priority-toggle');
   const statusFilter    = $('#status-filter');
   const avatarBtn       = $('#avatar-btn');
@@ -603,6 +657,15 @@
   // ---------- Utils ----------
   const esc = (s='') => s.replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const TYPE_LABEL = { 'pre-quals':'Pre-Quals', 'apps':'Apps', 'other':'Other' };
+  const toDateInput = (iso) => {
+    const dt = new Date(iso);
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  };
+  const fromDateInput = (s) => {
+    const [y,m,d] = s.split('-').map(Number);
+    return new Date(y, m-1, d, 12, 0, 0).toISOString();
+  };
   const fmtDate = d => new Date(d).toLocaleDateString('en-US',
     { month:'short', day:'numeric', year:'numeric' });
   function showToast(msg){
@@ -649,9 +712,22 @@
     projects.sort((a,b) =>
       (b.priority - a.priority) || b.created_at.localeCompare(a.created_at));
     projectsSub.textContent = projects.length === 1 ? '1 project' : `${projects.length} projects`;
-    projectListEl.innerHTML = projects.length
-      ? projects.map(projectRow).join('')
-      : '<div class="empty">No projects. Tap + to create one.</div>';
+    if (!projects.length){
+      projectListEl.innerHTML = '<div class="empty">No projects. Tap + to create one.</div>';
+    } else if (!state.type){
+      const groups = { 'pre-quals':[], 'apps':[], 'other':[] };
+      for (const p of projects) (groups[p.type] || (groups[p.type] = [])).push(p);
+      let html = '';
+      for (const t of ['apps','pre-quals','other']){
+        if (groups[t] && groups[t].length){
+          html += `<div class="project-group-head">${TYPE_LABEL[t]} (${groups[t].length})</div>`;
+          html += groups[t].map(projectRow).join('');
+        }
+      }
+      projectListEl.innerHTML = html;
+    } else {
+      projectListEl.innerHTML = projects.map(projectRow).join('');
+    }
 
     if (state.projectId && !state.projects.find(p => p.id === state.projectId)) state.projectId = null;
 
@@ -698,7 +774,8 @@
         <div class="project-name" title="${esc(p.name)}">${esc(p.name)}</div>
         <div class="project-pills">
           <span class="chip cat">${esc(p.category)}</span>
-          <span class="chip type-${p.type}">${esc(p.type)}</span>
+          <span class="chip type-${p.type}">${esc(TYPE_LABEL[p.type] || p.type)}</span>
+          ${pendingCountFor(p.id) ? `<span class="chip">${pendingCountFor(p.id)} open</span>` : ''}
         </div>
         <div class="project-date col-date">${fmtDate(p.created_at)}</div>
         <button class="star ${p.priority?'on':''}" data-action="star" aria-label="Toggle priority">★</button>
@@ -708,8 +785,9 @@
 
   function taskRow(t){
     return `
-      <div class="task ${t.completed?'done':''}" data-id="${t.id}">
+      <div class="task ${t.completed?'done':''} ${t.priority?'priority':''}" data-id="${t.id}">
         <input type="checkbox" class="check" ${t.completed?'checked':''} aria-label="Toggle done">
+        <button class="task-star ${t.priority?'on':''}" data-action="task-star" aria-label="Toggle priority">★</button>
         <div class="body">
           <div class="title">${esc(t.task)}</div>
           ${t.comments ? `<div class="comments">${esc(t.comments)}</div>` : ''}
@@ -742,6 +820,7 @@
       category: row.category,
       type: row.type,
       priority: !!row.priority,
+      created_at: fromDateInput(row.created_at),
     };
     if (row.id){
       const { error } = await db.from('projects').update(payload).eq('id', row.id);
@@ -812,6 +891,13 @@
     if (error){ showToast('Update failed'); await load(); }
   }
 
+  async function toggleTaskPriority(id){
+    const t = state.tasks.find(x => x.id === id); if (!t) return;
+    const next = !t.priority; t.priority = next; render();
+    const { error } = await db.from('tasks').update({ priority: next }).eq('id', id);
+    if (error){ showToast('Update failed'); await load(); }
+  }
+
   // ---------- Auth ----------
   function updateAvatar(){
     if (state.session){
@@ -827,18 +913,25 @@
   }
 
   // ---------- Events ----------
+  // Sidebar (mobile overlay)
+  const sidebarEl = $('.sidebar');
+  const sidebarBackdrop = $('#sidebar-backdrop');
+  const openSidebar  = () => { sidebarEl.classList.add('open'); sidebarBackdrop.classList.add('on'); };
+  const closeSidebar = () => { sidebarEl.classList.remove('open'); sidebarBackdrop.classList.remove('on'); };
+  $('#hamburger').addEventListener('click', openSidebar);
+  sidebarBackdrop.addEventListener('click', closeSidebar);
+
   // Categories
   catList.addEventListener('click', e => {
     const li = e.target.closest('.nav-item[data-cat]'); if (!li) return;
     state.category = li.dataset.cat;
     state.projectId = null;
-    app.classList.add('show-projects');
     app.classList.remove('show-tasks');
+    closeSidebar();
     render();
   });
 
   // Back
-  $('#back-to-cats').addEventListener('click', () => app.classList.remove('show-projects','show-tasks'));
   $('#back-to-projects').addEventListener('click', () => app.classList.remove('show-tasks'));
 
   // Search icon toggle
@@ -853,7 +946,6 @@
   });
 
   // Filters
-  typeFilter.addEventListener('change', e => { state.type = e.target.value; render(); });
   priorityToggle.addEventListener('click', () => {
     state.priorityOnly = !state.priorityOnly;
     priorityToggle.classList.toggle('on', state.priorityOnly);
@@ -896,6 +988,7 @@
     const row = e.target.closest('.task'); if (!row) return;
     const id  = row.dataset.id;
     if (e.target.classList.contains('check')) return toggleDone(id, e.target.checked);
+    if (e.target.closest('[data-action="task-star"]')) return toggleTaskPriority(id);
     if (e.target.closest('.row-edit')) return openTaskModal(state.tasks.find(t => t.id === id));
   });
   addTaskBtn.addEventListener('click', () => { if (state.projectId) openTaskModal(null); });
@@ -925,6 +1018,7 @@
       id: f.id.value || null,
       name: f.name.value, category: f.category.value,
       type: f.type.value, priority: f.priority.checked,
+      created_at: f.created_at.value,
     });
   });
   taskForm.addEventListener('submit', async e => {
@@ -942,6 +1036,7 @@
       f.id.value = p.id; f.name.value = p.name;
       f.category.value = p.category; f.type.value = p.type;
       f.priority.checked = !!p.priority;
+      f.created_at.value = toDateInput(p.created_at);
       projectDelete.hidden = false;
     } else {
       projectTitle.textContent = 'New Project';
@@ -949,6 +1044,7 @@
       f.category.value = state.category === 'All' ? 'MHC' : state.category;
       f.type.value = state.type || 'pre-quals';
       f.priority.checked = false;
+      f.created_at.value = toDateInput(new Date().toISOString());
       projectDelete.hidden = true;
     }
     projectModal.showModal();
