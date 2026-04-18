@@ -493,18 +493,13 @@
 <!-- ================== AUTH MODAL ================== -->
 <dialog id="auth-modal">
   <form class="modal" id="auth-form" method="dialog">
-    <h2>Welcome</h2>
-    <div class="tabs" id="auth-tabs">
-      <button type="button" class="tab on" data-tab="signin">Sign in</button>
-      <button type="button" class="tab"    data-tab="signup">Create account</button>
-    </div>
+    <h2>Sign in</h2>
     <label>Email</label>
     <input type="email" name="email" required autocomplete="email">
     <label>Password</label>
     <input type="password" name="password" required minlength="6" autocomplete="current-password">
     <div class="msg" id="auth-msg"></div>
     <div class="actions">
-      <button type="button" class="btn" data-close>Cancel</button>
       <button type="submit" class="btn primary" id="auth-submit">Sign in</button>
     </div>
   </form>
@@ -599,15 +594,11 @@
   const authModal       = $('#auth-modal');
   const authForm        = $('#auth-form');
   const authMsg         = $('#auth-msg');
-  const authSubmit      = $('#auth-submit');
-  const authTabs        = $('#auth-tabs');
   const profileModal    = $('#profile-modal');
   const profileEmail    = $('#profile-email');
   const pwForm          = $('#pw-form');
   const pwMsg           = $('#pw-msg');
   const toast           = $('#toast');
-
-  let authTab = 'signin';
 
   // ---------- Utils ----------
   const esc = (s='') => s.replace(/[&<>"']/g, c =>
@@ -729,6 +720,11 @@
 
   // ---------- Data ----------
   async function load(){
+    if (!state.session){
+      state.projects = []; state.tasks = []; state.projectId = null;
+      render();
+      return;
+    }
     const [pRes, tRes] = await Promise.all([
       db.from('projects').select('*').order('created_at', { ascending: false }),
       db.from('tasks').select('*').order('created_at', { ascending: false }),
@@ -828,14 +824,6 @@
       avatarBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
       avatarBtn.setAttribute('aria-label', 'Sign in');
     }
-  }
-
-  function switchAuthTab(tab){
-    authTab = tab;
-    $$('#auth-tabs .tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
-    authSubmit.textContent = tab === 'signup' ? 'Create account' : 'Sign in';
-    authMsg.textContent = '';
-    authMsg.className = 'msg';
   }
 
   // ---------- Events ----------
@@ -990,15 +978,10 @@
       profileModal.showModal();
     } else {
       authForm.reset();
-      switchAuthTab('signin');
+      authMsg.textContent = ''; authMsg.className = 'msg';
       authModal.showModal();
       setTimeout(() => authForm.elements.email.focus(), 50);
     }
-  });
-
-  authTabs.addEventListener('click', e => {
-    const b = e.target.closest('.tab[data-tab]'); if (!b) return;
-    switchAuthTab(b.dataset.tab);
   });
 
   authForm.addEventListener('submit', async e => {
@@ -1006,16 +989,10 @@
     const f = authForm.elements;
     const email = f.email.value.trim(), password = f.password.value;
     authMsg.textContent = 'Please wait…'; authMsg.className = 'msg';
-    let res;
-    if (authTab === 'signin') res = await db.auth.signInWithPassword({ email, password });
-    else                      res = await db.auth.signUp({ email, password });
-    if (res.error){ authMsg.textContent = res.error.message; authMsg.className = 'msg err'; return; }
-    if (authTab === 'signup' && !res.data.session){
-      authMsg.textContent = 'Check your email to confirm your account.'; authMsg.className = 'msg ok';
-      return;
-    }
+    const { error } = await db.auth.signInWithPassword({ email, password });
+    if (error){ authMsg.textContent = error.message; authMsg.className = 'msg err'; return; }
     authModal.close();
-    showToast(authTab === 'signin' ? 'Signed in' : 'Welcome');
+    showToast('Signed in');
   });
 
   pwForm.addEventListener('submit', async e => {
@@ -1039,16 +1016,24 @@
   });
 
   // Initial session + listener
-  db.auth.getSession().then(({ data }) => { state.session = data.session; updateAvatar(); });
-  db.auth.onAuthStateChange((_e, s) => { state.session = s; updateAvatar(); });
+  db.auth.getSession().then(({ data }) => {
+    state.session = data.session;
+    updateAvatar();
+    if (state.session) load();
+    else { authForm.reset(); authModal.showModal(); setTimeout(() => authForm.elements.email.focus(), 50); }
+  });
+  db.auth.onAuthStateChange((_e, s) => {
+    state.session = s;
+    updateAvatar();
+    if (s){ authModal.close(); load(); }
+    else { state.projects = []; state.tasks = []; state.projectId = null; render(); authModal.showModal(); }
+  });
 
-  // Realtime + initial load
+  // Realtime
   db.channel('todo-ch')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, load)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks'    }, load)
     .subscribe();
-
-  load();
 })();
 </script>
 </body>
