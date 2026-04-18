@@ -536,16 +536,23 @@
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./config.js"></script>
+<script>
+  // Supabase anon keys are public by design — Row-Level Security protects the data,
+  // not key secrecy. Embedding inline avoids any build-step / config.js fetch issue.
+  window.SUPABASE_URL      = 'https://packalmqzpzoiocalkrf.supabase.co';
+  window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhY2thbG1xenB6b2lvY2Fsa3JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NDI4ODksImV4cCI6MjA5MjAxODg4OX0.Uh7abxJqBtmGVhukpfkzqxmMeRPeWQMlOmO_EQ7ZpA8';
+  console.log('CONFIG:', window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+</script>
 <script>
 (() => {
   const { SUPABASE_URL, SUPABASE_ANON_KEY } = window;
-  if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) {
+  if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_') || !SUPABASE_ANON_KEY) {
     document.body.innerHTML =
       '<div style="padding:24px;max-width:560px;margin:40px auto;background:#18181b;border:1px solid #27272a;border-radius:12px;color:#fafafa;font-family:system-ui">'
       + '<h2>Supabase not configured</h2>'
-      + '<p>Open <code>config.js</code> and set <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> '
-      + '(keep the single quotes). Then run <code>schema.sql</code> in the Supabase SQL editor.</p>'
+      + '<p><b>SUPABASE_URL:</b> ' + (SUPABASE_URL || '<i>missing</i>') + '</p>'
+      + '<p><b>SUPABASE_ANON_KEY:</b> ' + (SUPABASE_ANON_KEY ? (SUPABASE_ANON_KEY.slice(0,12) + '…') : '<i>missing</i>') + '</p>'
+      + '<p>Set <code>window.SUPABASE_URL</code> and <code>window.SUPABASE_ANON_KEY</code> in the inline &lt;script&gt; block at the bottom of <code>index.html</code>. Then run <code>schema.sql</code> in the Supabase SQL editor.</p>'
       + '</div>';
     return;
   }
