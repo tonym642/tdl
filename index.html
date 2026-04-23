@@ -809,12 +809,12 @@
     return `
       <div class="task ${t.completed?'done':''} ${t.priority?'priority':''}" data-id="${t.id}">
         <input type="checkbox" class="check" ${t.completed?'checked':''} aria-label="Toggle done">
-        <button class="task-star ${t.priority?'on':''}" data-action="task-star" aria-label="Toggle priority">★</button>
         <div class="body">
           <div class="title">${esc(t.task)}</div>
           ${t.comments ? `<div class="comments">${esc(t.comments)}</div>` : ''}
         </div>
         <button class="row-edit" data-action="edit-task" aria-label="Edit">${EDIT_ICON}</button>
+        <button class="task-star ${t.priority?'on':''}" data-action="task-star" aria-label="Toggle priority">★</button>
       </div>`;
   }
 
